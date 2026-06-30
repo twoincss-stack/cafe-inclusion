@@ -201,7 +201,10 @@
     <!-- 左：メニュー -->
     <div class="menu-panel">
       <div class="category-bar" id="categoryBar"></div>
-      <div class="menu-grid" id="menuGrid"></div>
+      <div style="padding: 6px 10px 0; flex-shrink:0;">
+    <button onclick="freeInput()" style="width:100%;padding:8px;background:#fff3e0;border:2px dashed var(--accent);border-radius:8px;color:var(--accent);font-size:13px;font-weight:700;cursor:pointer;font-family:var(--font);">＋ 金額を自由入力</button>
+  </div>
+  <div class="menu-grid" id="menuGrid"></div>
     </div>
 
     <!-- 右：注文 -->
@@ -368,6 +371,7 @@ const MENUS = {
     { name: 'ローストビーフ丼', price: 1280 },
     { name: 'オムトマトカレー', price: 1280 },
     { name: 'オムトマトカレー 大盛', price: 1480 },
+    { name: 'ポークステーキ 160g', price: 1380 },
   ],
   'DESSERT': [
     { name: 'バナナパンケーキ', price: 1580 },
@@ -466,8 +470,21 @@ const MENUS = {
       { name: 'ウイスキー 水割り', price: 700 },
     ]
   },
+  'セットドリンク': [
+    { name: 'セットドリンク①', price: 450 },
+    { name: 'セットドリンク②', price: 600 },
+  ],
+  'バーチャージ': [
+    { name: 'バーチャージ', price: 500 },
+  ],
+  'わんちゃん': [
+    { name: 'わんちゃんご飯', price: 600 },
+  ],
   'ボトルワイン': [
     { name: 'ボトルワイン（日替り）', price: 0, isCustom: true },
+  ],
+  '手打ち料金': [
+    { name: '手打ち料金（金額自由設定）', price: 0, isCustom: true, isMulti: true },
   ],
   'その他': [
     { name: 'その他（金額入力）', price: 0, isCustom: true },
@@ -597,9 +614,11 @@ function renderMenu() {
   cat.forEach(item => {
     const el = document.createElement('div');
     el.className = 'menu-item' + (item.isCustom ? ' special' : '');
-    el.innerHTML = `<div class="name">${item.name}</div><div class="price">${item.isCustom ? '金額入力' : '¥'+item.price.toLocaleString()}</div>`;
+    el.innerHTML = `<div class="name">${item.name}</div><div class="price">${item.isMulti ? '複数入力' : item.isCustom ? '金額入力' : '¥'+item.price.toLocaleString()}</div>`;
     el.onclick = () => {
-      if (item.isCustom) {
+      if (item.isMulti) {
+        multiInput();
+      } else if (item.isCustom) {
         const p = prompt(`${item.name} の金額を入力してください`);
         if (p && !isNaN(parseInt(p))) addToOrder({ name: item.name, price: parseInt(p) });
       } else {
@@ -608,6 +627,33 @@ function renderMenu() {
     };
     grid.appendChild(el);
   });
+}
+
+// ===== 自由入力 =====
+function freeInput() {
+  const name = prompt('品名を入力してください（省略可）') ?? '';
+  const priceStr = prompt('金額を入力してください');
+  if (priceStr === null) return;
+  const price = parseInt(priceStr);
+  if (isNaN(price) || price <= 0) { showToast('正しい金額を入力してください'); return; }
+  addToOrder({ name: name || 'その他', price });
+}
+
+// ===== 手打ち料金（複数入力） =====
+function multiInput() {
+  let count = 0;
+  while (true) {
+    const name = prompt(`手打ち料金 ${count + 1}件目\n品名を入力してください（省略可、キャンセルで終了）`);
+    if (name === null) break;
+    const priceStr = prompt(`金額を入力してください（キャンセルで終了）`);
+    if (priceStr === null) break;
+    const price = parseInt(priceStr);
+    if (isNaN(price) || price <= 0) { showToast('正しい金額を入力してください'); continue; }
+    addToOrder({ name: name || '手打ち料金', price });
+    count++;
+    if (!confirm(`${count}件追加しました。続けてもう1件追加しますか？`)) break;
+  }
+  if (count > 0) showToast(`手打ち料金 ${count}件を追加しました`);
 }
 
 // ===== サブメニュー =====
